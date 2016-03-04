@@ -1,0 +1,207 @@
+######Logistic Model for CASA######################################################
+Model_Input_Data<- read.csv("D:/pranita/Model_Input_Data.csv", header=T)
+
+fit_CASA<- glm(CASA_EVENT~ AGE_CATG+RES_ST+INCOME_CATG+OCCUP_CATG+ACT_COND+CASA_AGE_CATG+GENDER_CATG+MAR_ST_CHNG+CASA_TRAN_NO_DEC_CATG+CASA_AMT_DEC_CATG+CASA_SENT_CATG,data=Model_Input_Data, family=binomial("logit")) 
+
+coefficient_CASA<- (fit_CASA$coefficient)
+coefficient_CASA<- data.frame(coefficient_CASA)
+summary(fit_CASA)
+
+step_CASA<-step(fit_CASA,direction="backward")
+coefficient_step_CASA<- data.frame(step_CASA$coefficients)
+
+variables_CASA <- rownames(coefficient_CASA)
+coeff_CASA <- data.frame(variables_CASA)
+coeff_CASA$coefficient<- NA
+
+coefficient_CASA$variables<- variables_CASA
+variables_CASA<- rownames(coefficient_step_CASA)
+coefficient_step_CASA$varaibles<- variables_CASA
+
+for ( i in 1:nrow(coeff_CASA))
+{
+  t1<- match (coeff_CASA[i,1],coefficient_step_CASA[,2])
+  
+  if(is.na(t1))
+  { coeff_CASA[i,2] <- 0
+    
+  }else{ coeff_CASA[i,2]<- coefficient_step_CASA[t1,1]}
+  
+}
+pp.fitted_CASA=predict.glm(step_CASA,Model_Input_Data,type="response" )
+
+threshold1=0.5
+esti.res1=NULL
+esti.res1[which(pp.fitted_CASA>=threshold1)]=1
+esti.res1[which(pp.fitted_CASA<threshold1)]=0
+PP_Estimates_CASA<-data.frame(CASA_EVENT=Model_Input_Data$CASA_EVENT,EST_EVENT_CASA=esti.res1, EST_PROB_CASA=pp.fitted_CASA)
+
+print("Finding contigency table of actual responce vs fitted responce")
+PP.mat_casa<-ftable(PP_Estimates_CASA$CASA_EVENT,PP_Estimates_CASA$EST_EVENT_CASA)
+
+#####Logistic model for Credit Card#######
+
+fit_cc<- glm(CC_EVENT ~ AGE_CATG+INCOME_CATG+ACT_COND+CC_AGE_CATG+CC_TRAN_NO_DEC_CATG+CC_AMT_DEC_CATG+CC_SENT_CATG,data=Model_Input_Data, family=binomial("logit"))
+
+coefficient_CC<- fit_cc$coefficients
+coefficient_cc<- data.frame(coefficient_CC)
+summary(fit_cc)
+
+step_cc<-step(fit_cc,direction="backward")
+coefficient_step_CC<- data.frame(step_cc$coefficients)
+
+variables_CC<- rownames(coefficient_cc)
+coeff_CC <- data.frame(variables_CC)
+coeff_CC$coefficient<- NA
+
+coefficient_cc$variables<- variables_CC
+variables_cc<- rownames(coefficient_step_CC)
+coefficient_step_CC$varaibles<- variables_cc
+
+for ( i in 1:nrow(coeff_CC))
+{
+  t2<- match (coeff_CC[i,1],coefficient_step_CC[,2])
+  
+  if(is.na(t2))
+  { coeff_CC[i,2] <- 0
+    
+  }else{ coeff_CC[i,2]<- coefficient_step_CC[t2,1]}
+  
+}
+
+pp.fitted_cc=predict.glm(step_cc,Model_Input_Data, type="response" )
+
+threshold1=0.5
+esti.res3=NULL
+esti.res3[which(pp.fitted_cc>=threshold1)]=1
+esti.res3[which(pp.fitted_cc<threshold1)]=0
+PP_Estimates_cc<-data.frame(CC_EVENT=Model_Input_Data$CC_EVENT,EST_EVENT_CC=esti.res3,EST_PROB_CC=pp.fitted_cc)
+
+print("Finding contigency table of actual responce vs fitted responce")
+PP.mat_CC<-ftable(PP_Estimates_cc$CC_EVENT,PP_Estimates_cc$EST_EVENT_CC)
+
+#####NBA Model##########################
+
+remove<- which((Model_Input_Data$CASA_EVENT==1)&(Model_Input_Data$CC_EVENT==1))
+Model_Input_Data<- Model_Input_Data[-remove,]
+
+Model_Input_Data$EVENT=NA
+Model_Input_Data$EVENT[which((Model_Input_Data$CASA_EVENT==0)&(Model_Input_Data$CC_EVENT==0))]="1"
+Model_Input_Data$EVENT[which((Model_Input_Data$CASA_EVENT==0)&(Model_Input_Data$CC_EVENT==1))]="0"
+Model_Input_Data$EVENT[which((Model_Input_Data$CASA_EVENT==1)&(is.na(Model_Input_Data$CC_EVENT))=="TRUE")]="1"
+Model_Input_Data$EVENT[which((Model_Input_Data$CASA_EVENT==0)&(is.na(Model_Input_Data$CC_EVENT))=="TRUE")]="1"
+Model_Input_Data$EVENT[which((Model_Input_Data$CASA_EVENT==1)&(Model_Input_Data$CC_EVENT==0))]="0"
+Model_Input_Data$EVENT<- as.numeric(Model_Input_Data$EVENT)
+
+NBA_Model<- Model_Input_Data
+NBA_Model[is.na(NBA_Model)] <- 0 
+
+fit<- glm(EVENT ~ AGE_CATG+RES_ST+INCOME_CATG+OCCUP_CATG+ACT_COND+CASA_AGE_CATG+GENDER_CATG+MAR_ST_CHNG+CASA_TRAN_NO_DEC_CATG+CASA_AMT_DEC_CATG+CASA_SENT_CATG+CC_AGE_CATG+CC_TRAN_NO_DEC_CATG+CC_AMT_DEC_CATG+CC_SENT_CATG+CB_SCORE_CATG+CREDIT_LIMIT_CATG,data=NBA_Model,family=binomial("logit")) 
+coefficient_NBA<- fit$coefficients
+coefficient_NBA<- data.frame(coefficient_NBA)
+step_model<-step(fit,direction="backward")
+coefficient_step_NBA<- data.frame(step_model$coefficients)
+summary(step_model)
+
+variables_NBA <- rownames(coefficient_NBA)
+coeff_NBA <- data.frame(variables_NBA)
+coeff_NBA$coefficient<- NA
+
+coefficient_NBA$variables<- variables_NBA
+variables_NBA<- rownames(coefficient_step_NBA)
+coefficient_step_NBA$varaibles<- variables_NBA
+
+for ( i in 1:nrow(coeff_NBA))
+{
+  t3<- match (coeff_NBA[i,1],coefficient_step_NBA[,2])
+  
+  if(is.na(t3))
+  { coeff_NBA[i,2] <- 0
+    
+  }else{ coeff_NBA[i,2]<- coefficient_step_NBA[t3,1]}
+  
+}
+
+pp.fitted=predict.glm(step_model,NBA_Model, type="response" )
+
+threshold1=0.5
+esti.res2=NULL
+esti.res2[which(pp.fitted>=threshold1)]=1
+esti.res2[which(pp.fitted<threshold1)]=0
+PP_Estimates<-data.frame(EVENT=NBA_Model$EVENT,EST_Event=esti.res2, EST_PROB=pp.fitted)
+
+print("Finding contigency table of actual responce vs fitted responce")
+PP.mat<-ftable(PP_Estimates$EVENT,PP_Estimates$EST_EVENT)
+
+PP.table<-addmargins(PP.mat)
+colnames(PP.table)<-c("0","1","Marginal_sum")
+rownames(PP.table)<-c("0","1","Marginal_sum")
+
+print("Calculating Product Propensity Model Accuracy")
+pp_accuracy<- ((PP.table[1,1]+PP.table[2,2])/(PP.table[3,3]))*100
+pp_accuracy=data.frame(pp_accuracy)
+
+threshold1=0.5
+
+PROPENSITY=NULL
+PROPENSITY[which(pp.fitted >=0.5)]="HIGH"
+PROPENSITY[which(pp.fitted < 0.5)]="LOW"
+
+churn1<- cbind(PP_Estimates_CASA$CASA_EVENT,PP_Estimates_CASA$EST_EVENT_CASA,PP_Estimates_CASA$EST_PROB_CASA,PP_Estimates_cc$CC_EVENT,PP_Estimates_cc$EST_EVENT_CC,PP_Estimates_cc$EST_PROB_CC)
+colnames(churn1)<- cbind("CASA_EVENT","EST_EVENT_CASA","EST_PROB_CASA","CC_EVENT","EST_EVENT_CC","EST_PROB_CC")
+churn<- data.frame(churn1)
+remove2<- which((churn$CASA_EVENT==1)&(churn$CC_EVENT==1))
+churn<- churn[-remove2,]
+
+attrition<- which(churn$EST_PROB_CC != 'NA')
+churn$LIKELIHOOD <- NA
+churn$LIKELIHOOD[attrition] <- churn$EST_PROB_CC[attrition]
+
+offer<- which(is.na(churn$EST_PROB_CC)=="TRUE")
+churn$LIKELIHOOD[offer] <- churn$EST_PROB_CASA[offer]
+
+churn$CHURN_LIKELIHOOD <- NA
+
+churn$CHURN_LIKELIHOOD[offer[which(churn$LIKELIHOOD[offer]>0.5)]] = "HIGH"
+churn$CHURN_LIKELIHOOD[offer[which(churn$LIKELIHOOD[offer]<=0.5)]] = "LOW"
+
+churn$ATTRITION_RATE<- NA
+
+churn$ATTRITION_RATE[attrition[which(churn$LIKELIHOOD[attrition]>0.5)]] = "HIGH"
+churn$ATTRITION_RATE[attrition[which(churn$LIKELIHOOD[attrition]<=0.5)]] = "LOW"
+
+churn$PROPENSITY<- PROPENSITY
+
+churn$CLTV<- NA
+churn$CLTV[which(Model_Input_Data$CLTV_CATG == 3)]="HIGH"
+churn$CLTV[which(Model_Input_Data$CLTV_CATG == 2)]="MEDIUM"
+churn$CLTV[which(Model_Input_Data$CLTV_CATG == 1)]="LOW"
+
+churn$DECISION<- NA
+churn$DECISION[which((churn$CHURN_LIKELIHOOD=="HIGH")&(churn$PROPENSITY=="HIGH")&(churn$CLTV=="HIGH"))]="Platinum Credit Card"
+churn$DECISION[which((churn$CHURN_LIKELIHOOD=="HIGH")&(churn$PROPENSITY=="HIGH")&(churn$CLTV=="MEDIUM"))]="Platinum Credit Card"
+churn$DECISION[which((churn$CHURN_LIKELIHOOD=="HIGH")&(churn$PROPENSITY=="HIGH")&(churn$CLTV=="LOW"))]="Gold Credit Card"
+churn$DECISION[which((churn$CHURN_LIKELIHOOD=="HIGH")&(churn$PROPENSITY=="LOW")&(churn$CLTV=="HIGH"))]="Gold Credit Card"
+churn$DECISION[which((churn$CHURN_LIKELIHOOD=="HIGH")&(churn$PROPENSITY=="LOW")&(churn$CLTV=="MEDIUM"))]="Standard Credit Card"
+churn$DECISION[which((churn$CHURN_LIKELIHOOD=="HIGH")&(churn$PROPENSITY=="LOW")&(churn$CLTV=="LOW"))]="Do not offer"
+churn$DECISION[which((churn$CHURN_LIKELIHOOD=="LOW")&(churn$PROPENSITY=="HIGH")&(churn$CLTV=="HIGH"))]="Gold Credit Card"
+churn$DECISION[which((churn$CHURN_LIKELIHOOD=="LOW")&(churn$PROPENSITY=="HIGH")&(churn$CLTV=="MEDIUM"))]="Standard Credit Card"
+churn$DECISION[which((churn$CHURN_LIKELIHOOD=="LOW")&(churn$PROPENSITY=="HIGH")&(churn$CLTV=="LOW"))]="Standard Credit Card"
+churn$DECISION[which((churn$CHURN_LIKELIHOOD=="LOW")&(churn$PROPENSITY=="LOW")&(churn$CLTV=="HIGH"))]="Standard Credit Card"
+churn$DECISION[which((churn$CHURN_LIKELIHOOD=="LOW")&(churn$PROPENSITY=="LOW")&(churn$CLTV=="MEDIUM"))]="Standard Credit Card"
+churn$DECISION[which((churn$CHURN_LIKELIHOOD=="LOW")&(churn$PROPENSITY=="LOW")&(churn$CLTV=="LOW"))]="Do not offer"
+
+churn$DECISION_PROD<- NA
+churn$DECISION_PROD[which((churn$ATTRITION_RATE=="HIGH")&(churn$PROPENSITY=="HIGH")&(churn$CLTV=="HIGH"))]="Platinum Credit Card"
+churn$DECISION_PROD[which((churn$ATTRITION_RATE=="HIGH")&(churn$PROPENSITY=="HIGH")&(churn$CLTV=="MEDIUM"))]="Platinum Credit Card"
+churn$DECISION_PROD[which((churn$ATTRITION_RATE=="HIGH")&(churn$PROPENSITY=="HIGH")&(churn$CLTV=="LOW"))]="Gold Credit Card"
+churn$DECISION_PROD[which((churn$ATTRITION_RATE=="HIGH")&(churn$PROPENSITY=="LOW")&(churn$CLTV=="HIGH"))]="Platinum Credit Card"
+churn$DECISION_PROD[which((churn$ATTRITION_RATE=="HIGH")&(churn$PROPENSITY=="LOW")&(churn$CLTV=="MEDIUM"))]="Gold Credit Card"
+churn$DECISION_PROD[which((churn$ATTRITION_RATE=="HIGH")&(churn$PROPENSITY=="LOW")&(churn$CLTV=="LOW"))]="Gold Credit Card"
+churn$DECISION_PROD[which((churn$ATTRITION_RATE=="LOW")&(churn$PROPENSITY=="HIGH")&(churn$CLTV=="HIGH"))]="Gold Credit Card"
+churn$DECISION_PROD[which((churn$ATTRITION_RATE=="LOW")&(churn$PROPENSITY=="HIGH")&(churn$CLTV=="MEDIUM"))]="Gold Credit Card"
+churn$DECISION_PROD[which((churn$ATTRITION_RATE=="LOW")&(churn$PROPENSITY=="HIGH")&(churn$CLTV=="LOW"))]="Do not offer"
+churn$DECISION_PROD[which((churn$ATTRITION_RATE=="LOW")&(churn$PROPENSITY=="LOW")&(churn$CLTV=="HIGH"))]="Gold Credit Card"
+churn$DECISION_PROD[which((churn$ATTRITION_RATE=="LOW")&(churn$PROPENSITY=="LOW")&(churn$CLTV=="MEDIUM"))]="Gold Credit Card"
+churn$DECISION_PROD[which((churn$ATTRITION_RATE=="LOW")&(churn$PROPENSITY=="LOW")&(churn$CLTV=="LOW"))]="Do not offer"
+
